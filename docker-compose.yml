@@ -1,0 +1,42 @@
+services:
+  mysql-inventario:
+    image: mysql:8.0
+    container_name: mysql-inventario
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-inventariodb}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${MYSQL_PORT:-3308}:3306"
+    volumes:
+      - mysql_inventario_data:/var/lib/mysql
+    networks:
+      - pasteleria-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ms-inventario:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ms-inventario
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8082}:${SERVER_PORT:-8082}"
+    env_file:
+      - .env
+    depends_on:
+      mysql-inventario:
+        condition: service_healthy
+    networks:
+      - pasteleria-network
+
+networks:
+  pasteleria-network:
+    external: true
+
+volumes:
+  mysql_inventario_data:
